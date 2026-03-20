@@ -751,13 +751,13 @@ The final GDSII stream file contains the complete chip geometry ready for mask f
 | Stage | Tool/Engine | Result |
 |---|---|---|
 | RTL Design | Manual Verilog | 32-tap FIR filter, 6-stage pipeline |
-| Behavioral Synthesis | SiliconForge | 2,646 AIG nodes, < 1s |
-| AIG Optimization | SiliconForge | O(1) structural hashing, flat vectors |
-| Technology Mapping | SiliconForge | 59,201 SKY130 cells |
-| Retiming | SiliconForge (Leiserson-Saxe) | 6,017 register moves, 14% Fmax gain |
-| STA | SiliconForge | Timing verified |
-| SDC Generation | SiliconForge | IEEE 1801 constraints |
-| Netlist Export | SiliconForge | 399K lines, 8.2 MB Verilog |
+| Behavioral Synthesis | MYFLOW | 2,646 AIG nodes, < 1s |
+| AIG Optimization | MYFLOW | O(1) structural hashing, flat vectors |
+| Technology Mapping | MYFLOW | 59,201 SKY130 cells |
+| Retiming | MYFLOW (Leiserson-Saxe) | 6,017 register moves, 14% Fmax gain |
+| STA | MYFLOW | Timing verified |
+| SDC Generation | MYFLOW | IEEE 1801 constraints |
+| Netlist Export | MYFLOW | 399K lines, 8.2 MB Verilog |
 | Floorplan | LibreLane (OpenLane 2) | 571 × 582 µm die |
 | PDN | LibreLane | VDD/VSS mesh on M4/M5 |
 | Placement | LibreLane (OpenROAD) | 23,850 instances |
@@ -802,7 +802,7 @@ Close-up view of the detailed routing showing individual metal traces, vias betw
 
 | Component | Tool | Role |
 |---|---|---|
-| **Frontend Synthesis** | SiliconForge | RTL → Gate-level netlist + SDC |
+| **Frontend Synthesis** | MYFLOW | RTL → Gate-level netlist + SDC |
 | **Backend PnR** | LibreLane (OpenLane 2) | Floorplan → GDSII |
 | **Place & Route Engine** | OpenROAD | Physical design |
 | **Detailed Router** | TritonRoute | DRC-clean routing |
