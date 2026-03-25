@@ -1024,11 +1024,11 @@ The And-Inverter Graph represents all combinational logic using only 2-input AND
 - **Refactoring:** Extracts common sub-expressions. `f(a,b) = a AND b` used in two places shares the same AIG node — no functional change.
 - **Balancing:** Restructures associative operations (`(a AND b) AND c` → balanced tree). Associativity of AND guarantees equivalence.
 
-**Result:** 145,050 → 108,861 gates (24.95% reduction), zero functional change.
+**Result:** ~50,000 → 42,060 AIG nodes after DCH + rewrite + resubstitution, zero functional change.
 
 #### Stage 4: Technology Mapping — AIG to Physical Cells
 
-Maps AIG nodes to SKY130 standard cells using structural matching. Each cell's Boolean function is known and verified:
+Maps AIG nodes to SKY130 standard cells using structural matching with 4-input cut enumeration and NPN-class equivalence. Each cell's Boolean function is known and verified:
 
 | Cell | Boolean Function | Equivalent AIG |
 |---|---|---|
@@ -1036,11 +1036,17 @@ Maps AIG nodes to SKY130 standard cells using structural matching. Each cell's B
 | `sky130_fd_sc_hd__nand2_1` | `Y = ~(A · B)` | AND + inverter |
 | `sky130_fd_sc_hd__nor2_1` | `Y = ~(A + B)` | De Morgan: `~A · ~B` |
 | `sky130_fd_sc_hd__and2_1` | `Y = A · B` | Direct AND node |
+| `sky130_fd_sc_hd__xor2_1` | `Y = A ⊕ B` | `(A · ~B) + (~A · B)` |
+| `sky130_fd_sc_hd__xnor2_1` | `Y = ~(A ⊕ B)` | `(A · B) + (~A · ~B)` |
+| `sky130_fd_sc_hd__a21oi_1` | `Y = ~((A1 · A2) + B1)` | AOI complex gate |
+| `sky130_fd_sc_hd__o21ai_1` | `Y = ~((A1 + A2) · B1)` | OAI complex gate |
+| `sky130_fd_sc_hd__mux2_1` | `Y = S ? A1 : A0` | Select logic |
 | `sky130_fd_sc_hd__dfrtp_1` | `Q ← D @ posedge CLK` | Sequential element |
+| `sky130_fd_sc_hd__dfrbp_1` | `Q,Q_N ← D @ posedge CLK` | Dual-output DFF |
 | `sky130_fd_sc_hd__buf_1` | `Y = A` | Identity (fanout) |
 | `sky130_fd_sc_hd__conb_1` | `HI=1, LO=0` | Constant tie |
 
-Each mapping is a direct structural substitution — the Boolean function of the cell exactly matches the AIG sub-graph it replaces.
+The mapper selects from **41 distinct cell types** across multiple drive strengths. Each mapping is verified by truth-table matching — the Boolean function of the cell exactly matches the AIG sub-graph it replaces.
 
 #### Stage 5: Register (DFF) Inference
 
