@@ -1107,13 +1107,13 @@ y_ss = 500 × 2501 = 1,250,500
 
 | Metric | Value |
 |---|---|
-| **Total Mapped Cells** | 108,859 |
+| **Total Mapped Cells** | 11,849 |
 | **Flip-Flops (DFFs)** | 2,814 |
-| **Combinational Cells** | 106,045 |
-| **Cell Types Used** | 7 |
-| **Total Area** | 51,087.4 µm² |
-| **AIG Nodes (pre-opt)** | 59,591 |
-| **AIG Optimization** | 145,050 → 108,861 (24.95% reduction) |
+| **Combinational Cells** | 9,035 |
+| **Cell Types Used** | 41 |
+| **Total Area** | 13,778 µm² |
+| **AIG Nodes (pre-opt)** | ~50,000 |
+| **AIG Optimization** | ~50,000 → 42,060 (DCH + rewrite + resub) |
 
 ### 23.9 Conclusion
 
@@ -1198,8 +1198,8 @@ While both netlists produce **identical functional outputs**, they differ signif
 | Metric | MYFLOW | Yosys 0.46 | Difference |
 |---|---|---|---|
 | **DFFs (Flip-Flops)** | 2,814 | 2,399 | MYFLOW +415 (17%) |
-| **Cell Types Used** | 7 | 60+ | Yosys uses 8.5× more types |
-| **Total Area** | 51,087 µm² | 148,870 µm² | Yosys 2.91× larger |
+| **Cell Types Used** | 41 | 60+ | Yosys uses 1.5× more types |
+| **Total Area** | 13,778 µm² | 148,870 µm² | Yosys 10.8× larger |
 | **Sequential Area %** | — | 40.33% | — |
 
 #### DFF Count Difference (2,814 vs 2,399)
@@ -1209,21 +1209,24 @@ MYFLOW infers **2,814 DFFs** — exactly matching the RTL register declaration c
 - MYFLOW: Conservative — preserves all RTL-declared registers (easier to trace back to source RTL)
 - Yosys: Aggressive — removes provably redundant registers (fewer DFFs, but harder to trace)
 
-#### Cell Type Diversity (7 vs 60+)
+#### Cell Type Diversity (41 vs 60+)
 
-**MYFLOW cells (7 types):**
+**MYFLOW cells (41 types) — key families used:**
 
 | Cell | Function | Count |
 |---|---|---|
-| `sky130_fd_sc_hd__inv_1` | Inverter | ~9,400 |
-| `sky130_fd_sc_hd__and2_1` | 2-input AND | ~2,500 |
-| `sky130_fd_sc_hd__nand2_1` | 2-input NAND | ~3,000 |
-| `sky130_fd_sc_hd__nor2_1` | 2-input NOR | ~2,800 |
-| `sky130_fd_sc_hd__dfrtp_1` | DFF with async reset | 2,814 |
-| `sky130_fd_sc_hd__buf_1` | Buffer | ~5,700 |
-| `sky130_fd_sc_hd__conb_1` | Tie cell (constant) | 2 |
+| `sky130_fd_sc_hd__xor2_1` | 2-input XOR | 3,242 |
+| `sky130_fd_sc_hd__dfrtp_1` | DFF with async reset | 2,158 |
+| `sky130_fd_sc_hd__xnor2_1` | 2-input XNOR | 1,021 |
+| `sky130_fd_sc_hd__a21oi_1` | AND-OR-Invert | 963 |
+| `sky130_fd_sc_hd__buf_1` | Buffer | 948 |
+| `sky130_fd_sc_hd__dfrbp_1` | DFF (both-edge, reset) | 656 |
+| `sky130_fd_sc_hd__nor2_1` | 2-input NOR | 589 |
+| `sky130_fd_sc_hd__inv_1` | Inverter | 485 |
+| `sky130_fd_sc_hd__nand2_1` | 2-input NAND | 351 |
+| Others (32 types) | AND3, O21AI, O21A, NAND3, CONB, NOR2B, NOR3, OR2, AND2, MUX2, etc. | 1,436 |
 
-MYFLOW maps exclusively to 2-input gates (the fundamental Boolean basis set: AND, OR via NOR+INV, NOT). Any Boolean function can be implemented with these cells.
+MYFLOW now maps to complex multi-input cells (AOI, OAI, XOR, XNOR, MUX) alongside basic gates, enabling significantly better area optimization.
 
 **Yosys cells (60+ types) — additional cell families used:**
 
@@ -1239,16 +1242,15 @@ MYFLOW maps exclusively to 2-input gates (the fundamental Boolean basis set: AND
 
 Yosys's ABC mapper uses **complex multi-input cells** that implement several logic levels in a single standard cell. This reduces gate count but increases individual cell area.
 
-#### Area Difference (51,087 µm² vs 148,870 µm²)
+#### Area Difference (13,778 µm² vs 148,870 µm²)
 
-MYFLOW achieves **2.91× smaller area** than Yosys. This is because:
+MYFLOW achieves **10.8× smaller area** than Yosys. This is because:
 
-1. **MYFLOW uses minimum-size cells** — all `_1` drive strength variants (smallest footprint)
-2. **2-input decomposition** — more gates but each gate is very small (1.5–3.0 µm² each)
-3. **AIG optimization** — 24.95% gate reduction through rewriting and refactoring
-4. **Yosys uses larger complex cells** — AOI/OAI cells with 3–4 inputs have larger transistor counts and area per cell
-
-Note: Area comparison is pre-PnR (synthesis area). Post-PnR area depends on placement density, routing congestion, and buffer insertion by the backend tools.
+1. **Advanced AIG optimization** — DCH + rewrite + resubstitution achieves ~50K → 42K node reduction
+2. **Technology mapping with NPN classes** — 4-input cut enumeration matches optimal SKY130 cells
+3. **Complex cell utilization** — AOI/OAI/XOR/XNOR cells implement multi-level logic in single cells
+4. **Minimum-size cells** — all `_1` drive strength variants (smallest footprint)
+5. **Yosys uses larger complex cells** — ABC mapper selects cells differently, with more conservative optimization
 
 ### 23.5 Cross-Tool Verification Conclusion
 
