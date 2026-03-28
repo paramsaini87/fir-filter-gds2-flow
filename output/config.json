@@ -1,11 +1,13 @@
 {
-    "DESIGN_NAME": "fir_filter",
-    "VERILOG_FILES": ["dir::src/fir_filter.v"],
+    "DESIGN_NAME": "user_design",
+    "VERILOG_FILES": ["dir::user_design.v"],
     "CLOCK_PORT": "clk",
     "CLOCK_PERIOD": 10.0,
     "FP_CORE_UTIL": 40,
     "PL_TARGET_DENSITY_PCT": 45,
     "RUN_CTS": true,
     "RUN_FILL_INSERTION": true,
-    "FALLBACK_SDC_FILE": "dir::src/fir_filter.sdc"
+    "FALLBACK_SDC_FILE": "dir::user_design.sdc",
+    "DESIGN_REPAIR_TIE_FANOUT": false,
+    "RUN_LINTER": false
 }
