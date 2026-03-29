@@ -33,16 +33,16 @@ module fir_filter #(
     reg signed [DATA_WIDTH-1:0] delay_line [0:N_TAPS-1];
     reg [N_TAPS-1:0] valid_sr;
 
-    integer i;
+    integer i0, i1, i2, i3, i4;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < N_TAPS; i = i + 1)
-                delay_line[i] <= 0;
+            for (i0 = 0; i0 < N_TAPS; i0 = i0 + 1)
+                delay_line[i0] <= 0;
             valid_sr <= 0;
         end else if (valid_in) begin
             delay_line[0] <= data_in;
-            for (i = 1; i < N_TAPS; i = i + 1)
-                delay_line[i] <= delay_line[i-1];
+            for (i0 = 1; i0 < N_TAPS; i0 = i0 + 1)
+                delay_line[i0] <= delay_line[i0-1];
             valid_sr <= {valid_sr[N_TAPS-2:0], valid_in};
         end
     end
@@ -53,12 +53,12 @@ module fir_filter #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < N_TAPS; i = i + 1)
-                products[i] <= 0;
+            for (i1 = 0; i1 < N_TAPS; i1 = i1 + 1)
+                products[i1] <= 0;
             v1 <= 0;
         end else begin
-            for (i = 0; i < N_TAPS; i = i + 1)
-                products[i] <= delay_line[i] * coeff[i];
+            for (i1 = 0; i1 < N_TAPS; i1 = i1 + 1)
+                products[i1] <= delay_line[i1] * coeff[i1];
             v1 <= valid_sr[N_TAPS-1];
         end
     end
@@ -69,12 +69,12 @@ module fir_filter #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < N_TAPS/2; i = i + 1)
-                sum_l1[i] <= 0;
+            for (i2 = 0; i2 < N_TAPS/2; i2 = i2 + 1)
+                sum_l1[i2] <= 0;
             v2 <= 0;
         end else begin
-            for (i = 0; i < N_TAPS/2; i = i + 1)
-                sum_l1[i] <= products[2*i] + products[2*i+1];
+            for (i2 = 0; i2 < N_TAPS/2; i2 = i2 + 1)
+                sum_l1[i2] <= products[2*i2] + products[2*i2+1];
             v2 <= v1;
         end
     end
@@ -85,12 +85,12 @@ module fir_filter #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < N_TAPS/4; i = i + 1)
-                sum_l2[i] <= 0;
+            for (i3 = 0; i3 < N_TAPS/4; i3 = i3 + 1)
+                sum_l2[i3] <= 0;
             v3 <= 0;
         end else begin
-            for (i = 0; i < N_TAPS/4; i = i + 1)
-                sum_l2[i] <= sum_l1[2*i] + sum_l1[2*i+1];
+            for (i3 = 0; i3 < N_TAPS/4; i3 = i3 + 1)
+                sum_l2[i3] <= sum_l1[2*i3] + sum_l1[2*i3+1];
             v3 <= v2;
         end
     end
@@ -101,12 +101,12 @@ module fir_filter #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < N_TAPS/8; i = i + 1)
-                sum_l3[i] <= 0;
+            for (i4 = 0; i4 < N_TAPS/8; i4 = i4 + 1)
+                sum_l3[i4] <= 0;
             v4 <= 0;
         end else begin
-            for (i = 0; i < N_TAPS/8; i = i + 1)
-                sum_l3[i] <= sum_l2[2*i] + sum_l2[2*i+1];
+            for (i4 = 0; i4 < N_TAPS/8; i4 = i4 + 1)
+                sum_l3[i4] <= sum_l2[2*i4] + sum_l2[2*i4+1];
             v4 <= v3;
         end
     end

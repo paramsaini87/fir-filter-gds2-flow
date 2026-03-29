@@ -232,31 +232,38 @@ The `sky130_fd_sc_hd` (high-density) library contains 440+ cell variants. The ma
 
 ### 5.2 Mapping Strategy
 
-1. **AIG AND → `nand2_1` + `inv_1`** or **`and2_1`** depending on output polarity
-2. **AIG INV → `inv_1`** or absorbed into NAND/NOR
-3. **DFF → `dfxtp_1`** (positive edge, no reset) or **`dfrtp_1`** (with async reset)
-4. **Constants → `conb_1`** tie cell (HI port for VDD, LO port for VSS)
+The technology mapper uses **area-flow cost optimization** (Mishchenko, DAC'06) to select cells that cover the most AIG nodes per cell. This prefers larger complex cells (AOI, OAI, MUX) when they subsume more internal AIG nodes than multiple 2-input gates would, reducing total cell count while maintaining formal equivalence.
+
+1. **AIG sub-graphs → complex cells** (`a21oi_1`, `o21ai_1`, `a22oi_1`, `mux2_1`, etc.) when the area-flow cost is lower than decomposed 2-input gates
+2. **AIG AND → `nand2_1` + `inv_1`** or **`and2_1`** depending on output polarity (fallback for uncovered nodes)
+3. **AIG INV → `inv_1`** or absorbed into NAND/NOR
+4. **DFF → `dfxtp_1`** (positive edge, no reset) or **`dfrtp_1`** (with async reset)
+5. **Constants → `conb_1`** tie cell (HI port for VDD, LO port for VSS)
 
 ### 5.3 Technology Mapping Results
 
 | Cell Type | Count | Purpose |
 |---|---|---|
-| `sky130_fd_sc_hd__nor2_1` | 27,825 | 2-input NOR gates (primary logic family from AIG) |
-| `sky130_fd_sc_hd__or2_1` | 4,524 | 2-input OR gates |
-| `sky130_fd_sc_hd__nand2_1` | 3,079 | 2-input NAND gates |
+| `sky130_fd_sc_hd__nor2_1` | 7,837 | 2-input NOR gates |
+| `sky130_fd_sc_hd__nand2_1` | 7,580 | 2-input NAND gates |
+| `sky130_fd_sc_hd__xor2_1` | 4,716 | XOR gates (arithmetic logic) |
+| `sky130_fd_sc_hd__and2_1` | 2,977 | 2-input AND gates |
 | `sky130_fd_sc_hd__dfrtp_1` | 2,814 | D flip-flops (pos edge, async reset) |
-| `sky130_fd_sc_hd__a21oi_1` | 2,041 | AND-OR-Invert complex cells |
-| `sky130_fd_sc_hd__xor2_1` | 1,830 | XOR gates (arithmetic logic) |
-| `sky130_fd_sc_hd__nor3_1` | 1,194 | 3-input NOR gates |
-| `sky130_fd_sc_hd__nor2b_1` | 1,086 | 2-input NOR with inverted input |
-| `sky130_fd_sc_hd__or3_1` | 808 | 3-input OR gates |
-| `sky130_fd_sc_hd__xnor2_1` | 641 | XNOR gates (arithmetic logic) |
-| `sky130_fd_sc_hd__buf_1` | 576 | Buffers (fanout management) |
-| `sky130_fd_sc_hd__o21ai_1` | 335 | OR-AND-Invert complex cells |
-| Other cells (20 types) | 974 | o21a, and3, and2, nor4, inv, and4b, nand3, mux2, etc. |
-| **Total** | **47,727** | **32 distinct cell types** |
+| `sky130_fd_sc_hd__o21a_1` | 2,690 | OR-AND complex cells |
+| `sky130_fd_sc_hd__xnor2_1` | 1,942 | XNOR gates (arithmetic logic) |
+| `sky130_fd_sc_hd__nand3_1` | 1,740 | 3-input NAND gates |
+| `sky130_fd_sc_hd__nor3_1` | 1,205 | 3-input NOR gates |
+| `sky130_fd_sc_hd__a22oi_1` | 973 | AND-AND-OR-Invert complex cells |
+| `sky130_fd_sc_hd__buf_1` | 577 | Buffers (fanout management) |
+| `sky130_fd_sc_hd__a21oi_1` | 394 | AND-OR-Invert complex cells |
+| `sky130_fd_sc_hd__o21ai_1` | 337 | OR-AND-Invert complex cells |
+| `sky130_fd_sc_hd__or2_1` | 262 | 2-input OR gates |
+| `sky130_fd_sc_hd__nor4_1` | 200 | 4-input NOR gates |
+| `sky130_fd_sc_hd__inv_1` | 161 | Inverters |
+| Other cells (14 types) | 893 | a31oi, and3, or3, a211oi, mux2, nor2b, and4, nand3b, nor3b, nand4, a21o, and2b, a22o, conb |
+| **Total** | **37,298** | **30 distinct cell types** |
 
-> **Note:** The high NOR2 count (58% of all cells) reflects the AIG-based synthesis strategy — AIG AND/INV nodes naturally map to NOR2 cells via De Morgan's law. The `dfrbp_1` (dual-output DFF) is intentionally disabled to ensure LVS-clean physical design; all flip-flops use `dfrtp_1` (single Q output with async reset).
+> **Note:** The technology mapper uses area-flow cost optimization (Mishchenko, DAC'06) to select cells that cover the most logic per cell. This produces a balanced cell mix with significant use of complex gates (AOI, OAI) alongside 2-input gates. NOR2 (21%) and NAND2 (20%) are roughly equal, with complex cells making up a substantial portion. The `dfrbp_1` (dual-output DFF) is intentionally disabled to ensure LVS-clean physical design; all flip-flops use `dfrtp_1` (single Q output with async reset).
 
 ---
 
@@ -439,11 +446,11 @@ sky130_fd_sc_hd__conb_1 tie_0 (.HI(const_1), .LO());
 
 | Metric | Value |
 |---|---|
-| **Total cells** | 47,727 |
-| **Cell types** | 32 |
-| **Internal nets** | ~48,000 |
-| **Lines of Verilog** | 342,043 |
-| **File size** | 6.0 MB |
+| **Total cells** | 37,298 |
+| **Cell types** | 30 |
+| **Internal nets** | ~38,000 |
+| **Lines of Verilog** | ~249,000 |
+| **File size** | 5.1 MB |
 
 ---
 
@@ -479,7 +486,7 @@ LEC identifies 41 key equivalence points (register boundaries and primary I/O) a
 
 ### 10.4 Verification Summary
 
-**MATHEMATICALLY PROVEN EQUIVALENT** — The optimized 47,727-cell SKY130 netlist is formally proven to compute identical outputs to the original RTL for all 2^(16+1) = 131,072 possible input combinations (16-bit data + valid). This is not simulation coverage — it is a complete mathematical proof.
+**MATHEMATICALLY PROVEN EQUIVALENT** — The optimized 37,298-cell SKY130 netlist is formally proven to compute identical outputs to the original RTL for all 2^(16+1) = 131,072 possible input combinations (16-bit data + valid). This is not simulation coverage — it is a complete mathematical proof.
 
 ---
 
@@ -491,12 +498,12 @@ Floorplanning defines the physical boundaries of the chip and the placement of I
 
 | Parameter | Value |
 |---|---|
-| **Die width** | 837.3 µm |
-| **Die height** | 848.0 µm |
-| **Die area** | 710,064 µm² |
-| **Core area** | 680,888 µm² |
-| **Instance area** | 350,938 µm² |
-| **Core utilization** | 51.5% |
+| **Die width** | 819.64 µm |
+| **Die height** | 830.36 µm |
+| **Die area** | 680,596 µm² |
+| **Core area** | 652,912 µm² |
+| **Instance area** | 394,317 µm² |
+| **Core utilization** | ~60.4% |
 
 ### 11.2 I/O Pin Placement
 
@@ -576,33 +583,33 @@ Placement assigns physical (x, y) coordinates to every standard cell instance.
 
 | Instance Type | Count | Description |
 |---|---|---|
-| **Sequential cells** | 2,768 | D flip-flops (pipeline registers) |
-| **Combinational cells** | 44,101 | Multi-input logic (NOR, OR, NAND, AND, XOR, AOI, OAI, etc.) |
-| **Buffers** | 576 | Signal buffers |
-| **Inverters** | 56 | Inverter cells |
-| **Clock buffers** | 407 | Clock distribution buffers |
+| **Sequential cells** | 2,814 | D flip-flops (pipeline registers) |
+| **Combinational cells** | 34,484 | Multi-input logic (NOR, NAND, AND, XOR, AOI, OAI, etc.) |
+| **Buffers** | 577 | Signal buffers |
+| **Inverters** | 161 | Inverter cells |
+| **Clock buffers** | 425 | Clock distribution buffers |
 | **Clock inverters** | 279 | Clock polarity inverters |
-| **Timing repair buffers** | 4,846 | Inserted during optimization for timing closure |
-| **Hold buffers** | 3,377 | Hold timing fix buffers |
-| **Setup buffers** | 155 | Setup timing fix buffers |
-| **Antenna diodes** | 74 | Antenna rule repair diodes |
-| **Fill cells** | 49,714 | Metal density filler (no logic function) |
-| **Tap cells** | 9,760 | Substrate/well taps (latch-up prevention) |
-| **Total placed** | 62,867 | (excluding fill/tap: ~53,107 logic instances) |
+| **Timing repair buffers** | 4,888 | Inserted during optimization for timing closure |
+| **Hold buffers** | 3,226 | Hold timing fix buffers |
+| **Setup buffers** | 452 | Setup timing fix buffers |
+| **Antenna diodes** | 179 | Antenna rule repair diodes |
+| **Fill cells** | 39,588 | Metal density filler (no logic function) |
+| **Tap cells** | 9,269 | Substrate/well taps (latch-up prevention) |
+| **Total placed** | 52,195 | (excluding fill/tap: ~43,338 logic instances) |
 
 ### 13.3 Instance Area Breakdown
 
 | Category | Area (µm²) | % of Core |
 |---|---|---|
-| **Standard cell instances** | 350,938 | 51.5% |
-| **Routing channels + whitespace** | 329,950 | 48.5% |
-| **Total core** | 680,888 | 100% |
+| **Standard cell instances** | 394,317 | ~60.4% |
+| **Routing channels + whitespace** | 258,595 | ~39.6% |
+| **Total core** | 652,912 | 100% |
 
 ---
 
 ## 14. Clock Tree Synthesis (CTS)
 
-CTS builds a balanced distribution network that delivers the clock signal to all 2,768 sequential elements with minimal skew.
+CTS builds a balanced distribution network that delivers the clock signal to all 2,814 sequential elements with minimal skew.
 
 ### 14.1 CTS Objectives
 
@@ -638,7 +645,7 @@ The clock tree is built as an **H-tree** with buffer stages:
 | **Register-to-register hold** | +0.120 ns worst ✅ (clean across all corners) |
 | **Register-to-register setup (tt)** | +1.97 ns ✅ |
 | **Register-to-register setup (ff)** | +4.74 ns ✅ |
-| **Clock buffers inserted** | 407 buffers + 279 inverters |
+| **Clock buffers inserted** | 425 buffers + 279 inverters |
 
 ---
 
@@ -681,8 +688,8 @@ The detailed router iterates to resolve all design rule violations:
 
 | Metric | Value |
 |---|---|
-| **Total wirelength** | 1,013,683 µm |
-| **Vias** | 307,408 |
+| **Total wirelength** | 997,852 µm |
+| **Vias** | 268,188 |
 | **Routing iterations** | 8 |
 | **Final DRC violations** | **0** ✅ |
 | **Routing layers used** | LI through Metal 5 |
@@ -698,11 +705,11 @@ During fabrication, long metal wires can accumulate charge from plasma etching, 
 
 | Metric | Value |
 |---|---|
-| **Violations found (pre-repair)** | 11 nets, 15 pins |
-| **Antenna diodes inserted** | 74 |
+| **Violations found (pre-repair)** | 7 nets, 7 pins |
+| **Antenna diodes inserted** | 179 |
 | **Violations after repair** | **0** ✅ |
 
-Antenna violations were repaired by inserting reverse-biased diodes on affected nets. The 74 antenna diodes provide charge drainage paths, keeping metal-to-gate area ratios within foundry limits.
+Antenna violations were repaired by inserting reverse-biased diodes on affected nets. The 179 antenna diodes provide charge drainage paths, keeping metal-to-gate area ratios within foundry limits.
 
 ---
 
@@ -714,10 +721,10 @@ Foundry rules require minimum metal density on each layer to ensure uniform Chem
 
 | Fill Type | Count | Purpose |
 |---|---|---|
-| **Fill cells** | 49,714 | Metal density compliance |
-| **Tap cells** | 9,760 | N-well and P-substrate taps (latch-up prevention) |
+| **Fill cells** | 39,588 | Metal density compliance |
+| **Tap cells** | 9,269 | N-well and P-substrate taps (latch-up prevention) |
 
-Tap cells are inserted at regular intervals (typically every 15–20 µm) to ensure every NMOS and PMOS transistor has a nearby substrate/well contact. The large fill cell count reflects the 837×848 µm die area requiring extensive density fill across all metal layers.
+Tap cells are inserted at regular intervals (typically every 15–20 µm) to ensure every NMOS and PMOS transistor has a nearby substrate/well contact. The large fill cell count reflects the 820×830 µm die area requiring extensive density fill across all metal layers.
 
 ---
 
@@ -786,18 +793,18 @@ Post-PnR timing analysis across 9 PVT corners (3 process × 3 RC):
 | `nom_ff_n40C_1v95` | +4.89 ns | +0.13 ns | ✅ Clean |
 | `min_ff_n40C_1v95` | +5.01 ns | +0.12 ns | ✅ Clean |
 | `max_ff_n40C_1v95` | +4.74 ns | +0.13 ns | ✅ Clean |
-| `nom_ss_100C_1v60` | −4.37 ns | −0.50 ns | ⚠️ Violations |
-| `min_ss_100C_1v60` | −4.13 ns | −0.43 ns | ⚠️ Violations |
-| `max_ss_100C_1v60` | −4.74 ns | −0.54 ns | ⚠️ Violations |
+| `nom_ss_100C_1v60` | −3.78 ns | −0.45 ns | ⚠️ Violations |
+| `min_ss_100C_1v60` | −3.51 ns | −0.34 ns | ⚠️ Violations |
+| `max_ss_100C_1v60` | −4.06 ns | −0.55 ns | ⚠️ Violations |
 
 **Timing summary:**
-- **Typical (tt) and fast (ff) corners: ALL CLEAN** — zero setup/hold violations
-- **Slow-slow (ss) corner: setup violations** — WNS −4.74 ns, 333 paths (design needs ~14.7 ns clock at ss)
-- **Slow-slow (ss) corner: hold violations** — WNS −0.54 ns, 14 paths (on I/O boundary paths)
+- **Typical (tt) and fast (ff) corners: ALL CLEAN** — zero setup/hold violations across all 6 corners
+- **Slow-slow (ss) corner: setup violations** — WNS −4.06 ns at 100 MHz (10 ns period)
+- **Slow-slow (ss) corner: hold violations** — WNS −0.55 ns (on I/O boundary paths)
 - **Register-to-register hold: 0 violations across ALL corners** ✅
 - **Register-to-register setup at tt: +1.97 ns slack** ✅
 
-The ss corner represents extreme worst-case process/voltage/temperature conditions (1.60V at 100°C on slow silicon). The design meets timing at typical and fast corners with comfortable margin. For ss corner closure, the clock period would need to be relaxed to ~15 ns (67 MHz), or the synthesis could be re-run with timing-driven optimization targeting the ss corner.
+The ss corner represents extreme worst-case process/voltage/temperature conditions (1.60V at 100°C on slow silicon). The design is currently synthesized and constrained at **100 MHz (10 ns clock period)** — at this aggressive target, the ss corner shows setup violations. At a relaxed clock of **~65 MHz (~15.4 ns period)**, the ss corner would close cleanly with positive slack. The design meets timing at typical and fast corners with comfortable margin, and 65 MHz on slow-slow silicon is a reasonable operating point for a 130nm process. Alternatively, timing-driven re-synthesis targeting the ss corner could improve closure at higher frequencies.
 
 | Violation Type | Count (across all corners) |
 |---|---|
@@ -828,7 +835,7 @@ The final GDSII stream file contains the complete chip geometry ready for mask f
 
 | Metric | Value |
 |---|---|
-| **File size** | 95 MB |
+| **File size** | 83 MB |
 | **Format** | GDSII Stream (binary) |
 | **DRC status** | Clean (0 violations) |
 | **LVS status** | Clean (circuits match uniquely) |
@@ -844,43 +851,43 @@ The final GDSII stream file contains the complete chip geometry ready for mask f
 | RTL Design | Manual Verilog | 32-tap FIR filter, 6-stage pipeline |
 | Behavioral Synthesis | SiliconForge | ~50,000 AIG nodes, < 1s |
 | AIG Optimization | SiliconForge (7-pass iterative) | 42,060 AIG nodes (16% reduction) |
-| Technology Mapping | SiliconForge | 47,727 SKY130 cells (32 types) |
+| Technology Mapping | SiliconForge | 37,298 SKY130 cells (30 types) |
 | Retiming | SiliconForge (Leiserson-Saxe) | 6,017 register moves, 14% Fmax gain |
 | STA | SiliconForge | Timing verified |
 | SDC Generation | SiliconForge | IEEE 1801 constraints |
-| Netlist Export | SiliconForge | 342,043 lines, 6.0 MB Verilog |
+| Netlist Export | SiliconForge | ~249,000 lines, 5.1 MB Verilog |
 | Formal Verification | SiliconForge (SAT/LEC) | Mathematically proven equivalent ✅ |
-| Floorplan | LibreLane (OpenLane 2) | 837 × 848 µm die |
+| Floorplan | LibreLane (OpenLane 2) | 820 × 830 µm die |
 | PDN | LibreLane | VDD/VSS mesh on M4/M5 |
-| Placement | LibreLane (OpenROAD) | 62,867 instances |
-| CTS | LibreLane (OpenROAD) | 407 buffers + 279 inverters |
-| Routing | LibreLane (TritonRoute) | 1,013,683 µm wirelength, 0 DRC |
+| Placement | LibreLane (OpenROAD) | 52,195 instances |
+| CTS | LibreLane (OpenROAD) | 425 buffers + 279 inverters |
+| Routing | LibreLane (TritonRoute) | 997,852 µm wirelength, 0 DRC |
 | Antenna Check | LibreLane | 0 violations after repair ✅ |
-| Fill | LibreLane | 49,714 fill + 9,760 tap cells |
+| Fill | LibreLane | 39,588 fill + 9,269 tap cells |
 | Parasitic Extraction | LibreLane (OpenRCX) | SPEF for all corners |
 | DRC Signoff | Magic + KLayout | **0 violations** ✅ |
 | LVS Signoff | Netgen | **Circuits match uniquely** ✅ |
 | Timing (tt/ff) | OpenSTA | **Clean — 0 violations** ✅ |
-| Timing (ss) | OpenSTA | WNS −4.74 ns (needs clock relaxation) |
-| GDSII | Magic | **95 MB, tape-out ready** ✅ |
+| Timing (ss) | OpenSTA | WNS −4.06 ns (clean at ~65 MHz) |
+| GDSII | Magic | **83 MB, tape-out ready** ✅ |
 
 ### 23.2 Power Analysis
 
 | Component | Power (mW) | % |
 |---|---|---|
-| **Internal** (cell switching) | 69.6 | 41.7% |
-| **Switching** (net charging) | 97.2 | 58.3% |
-| **Leakage** | ~0.38 µW | <0.01% |
-| **Total** | **166.7** | 100% |
+| **Internal** (cell switching) | 81.3 | 44.3% |
+| **Switching** (net charging) | 102.3 | 55.7% |
+| **Leakage** | ~0.47 µW | <0.01% |
+| **Total** | **183.6** | 100% |
 
-> **Note:** The higher power compared to smaller designs is expected for a 47,727-cell implementation with 2,814 flip-flops operating at 100 MHz on a 130nm process. The switching-dominated power profile reflects the extensive combinational logic in the 32 parallel multipliers and 5-level adder tree.
+> **Note:** The higher power compared to smaller designs is expected for a 37,298-cell implementation with 2,814 flip-flops operating at 100 MHz on a 130nm process. The switching-dominated power profile reflects the extensive combinational logic in the 32 parallel multipliers and 5-level adder tree. The higher core utilization (~60%) contributes to increased internal power from denser cell packing.
 
 ### 23.3 Layout Images
 
 #### Full Chip Layout
 ![Full Chip Layout](images/01_chip_full_layout.png)
 
-The full die view showing the complete chip with I/O ring, placed standard cells, and metal routing across all layers. Die dimensions: 837.3 × 848.0 µm (710,064 µm²).
+The full die view showing the complete chip with I/O ring, placed standard cells, and metal routing across all layers. Die dimensions: 819.64 × 830.36 µm (680,596 µm²).
 
 #### Zoomed Placement and Routing
 ![Zoomed Placement](images/02_chip_zoomed_placement.png)
@@ -1078,7 +1085,7 @@ Maps AIG nodes to SKY130 standard cells using structural matching with 4-input c
 | `sky130_fd_sc_hd__buf_1` | `Y = A` | Identity (fanout) |
 | `sky130_fd_sc_hd__conb_1` | `HI=1, LO=0` | Constant tie |
 
-The mapper selects from **32 distinct cell types** using minimum drive strength. Each mapping is verified by truth-table matching — the Boolean function of the cell exactly matches the AIG sub-graph it replaces.
+The mapper selects from **30 distinct cell types** using minimum drive strength. Each mapping is verified by truth-table matching — the Boolean function of the cell exactly matches the AIG sub-graph it replaces.
 
 #### Stage 5: Register (DFF) Inference
 
@@ -1145,11 +1152,11 @@ y_ss = 500 × 2501 = 1,250,500
 
 | Metric | Value |
 |---|---|
-| **Total Mapped Cells** | 47,727 |
+| **Total Mapped Cells** | 37,298 |
 | **Flip-Flops (DFFs)** | 2,814 |
-| **Combinational Cells** | 44,913 |
-| **Cell Types Used** | 32 |
-| **Instance Area** | 350,938 µm² |
+| **Combinational Cells** | 34,484 |
+| **Cell Types Used** | 30 |
+| **Instance Area** | 394,317 µm² |
 | **AIG Nodes (pre-opt)** | ~50,000 |
 | **AIG Optimization** | ~50,000 → 42,060 (DCH + rewrite + resub) |
 
@@ -1236,10 +1243,10 @@ While both netlists produce **identical functional outputs**, they differ signif
 | Metric | SiliconForge | Yosys 0.46 | Notes |
 |---|---|---|---|
 | **DFFs (Flip-Flops)** | 2,814 | 2,399 | SiliconForge preserves all RTL-declared registers |
-| **Cell Types Used** | 32 | 60+ | Yosys uses more drive strength variants |
-| **Total Cells** | 47,727 | — | SiliconForge uses 2-input NOR/OR/NAND as primary gates |
+| **Cell Types Used** | 30 | 60+ | Yosys uses more drive strength variants |
+| **Total Cells** | 37,298 | — | SiliconForge uses balanced NOR2/NAND2/complex gate mix |
 
-> **Note:** SiliconForge's current synthesis prioritizes LVS-correctness over area. The `dfrbp_1` (dual-output DFF) cell is intentionally disabled because its Q_N output requires careful export handling that previously caused LVS errors. All flip-flops use `dfrtp_1` (single Q output), and the combinational logic is mapped primarily to 2-input gates (NOR2, OR2, NAND2). This produces a structurally larger but physically verified netlist.
+> **Note:** SiliconForge's technology mapper uses area-flow cost optimization (Mishchenko, DAC'06) to select cells that cover the most logic per cell. The `dfrbp_1` (dual-output DFF) cell is intentionally disabled because its Q_N output requires careful export handling that previously caused LVS errors. All flip-flops use `dfrtp_1` (single Q output), and the combinational logic is mapped to a balanced mix of 2-input and complex multi-input gates (AOI, OAI). This produces a compact, physically verified netlist with 21.8% fewer cells than the previous 2-input-gate-dominated mapping.
 
 #### DFF Count Difference (2,814 vs 2,399)
 
@@ -1252,17 +1259,22 @@ SiliconForge infers **2,814 DFFs** — exactly matching the RTL register declara
 
 | Cell | Function | Count |
 |---|---|---|
-| `sky130_fd_sc_hd__nor2_1` | 2-input NOR | 27,825 |
-| `sky130_fd_sc_hd__or2_1` | 2-input OR | 4,524 |
-| `sky130_fd_sc_hd__nand2_1` | 2-input NAND | 3,079 |
+| `sky130_fd_sc_hd__nor2_1` | 2-input NOR | 7,837 |
+| `sky130_fd_sc_hd__nand2_1` | 2-input NAND | 7,580 |
+| `sky130_fd_sc_hd__xor2_1` | 2-input XOR | 4,716 |
+| `sky130_fd_sc_hd__and2_1` | 2-input AND | 2,977 |
 | `sky130_fd_sc_hd__dfrtp_1` | DFF with async reset | 2,814 |
-| `sky130_fd_sc_hd__a21oi_1` | AND-OR-Invert | 2,041 |
-| `sky130_fd_sc_hd__xor2_1` | 2-input XOR | 1,830 |
-| `sky130_fd_sc_hd__nor3_1` | 3-input NOR | 1,194 |
-| `sky130_fd_sc_hd__nor2b_1` | NOR with inverted input | 1,086 |
-| Others (24 types) | OR3, XNOR2, BUF, O21AI, O21A, AND3, AND2, etc. | 3,334 |
+| `sky130_fd_sc_hd__o21a_1` | OR-AND | 2,690 |
+| `sky130_fd_sc_hd__xnor2_1` | 2-input XNOR | 1,942 |
+| `sky130_fd_sc_hd__nand3_1` | 3-input NAND | 1,740 |
+| `sky130_fd_sc_hd__nor3_1` | 3-input NOR | 1,205 |
+| `sky130_fd_sc_hd__a22oi_1` | AND-AND-OR-Invert | 973 |
+| `sky130_fd_sc_hd__buf_1` | Buffer | 577 |
+| `sky130_fd_sc_hd__a21oi_1` | AND-OR-Invert | 394 |
+| `sky130_fd_sc_hd__o21ai_1` | OR-AND-Invert | 337 |
+| Others (17 types) | or2, nor4, inv, a31oi, and3, or3, a211oi, mux2, nor2b, and4, nand3b, nor3b, nand4, a21o, and2b, a22o, conb | 1,516 |
 
-SiliconForge's AIG-based synthesis naturally produces NOR2-heavy netlists because AIG AND/INV nodes map to NOR2 via De Morgan's law: `AND(a,b) = NOR(NOT(a), NOT(b))` with inverter absorption.
+The technology mapper uses area-flow cost optimization (Mishchenko, DAC'06) to select cells that cover the most logic per cell. This produces a balanced cell mix with significant use of complex gates (AOI, OAI) alongside 2-input gates. NOR2 (21%) and NAND2 (20%) are roughly equal, with complex cells making up a substantial portion of the netlist.
 
 ### 23.5 Cross-Tool Verification Conclusion
 
@@ -1272,7 +1284,7 @@ SiliconForge's AIG-based synthesis naturally produces NOR2-heavy netlists becaus
 | **Yosys = RTL** | ✅ 0 mismatches (140+ cycles) |
 | **SiliconForge = Yosys** | ✅ 0 mismatches (140+ cycles) |
 
-Both SiliconForge and Yosys (LibreLane's frontend) synthesize the FIR filter RTL into gate netlists that produce **bit-identical outputs at every clock cycle**. The tools use fundamentally different internal representations (SiliconForge: AIG + 2-input mapping, Yosys: RTLIL + ABC technology mapping) and produce structurally different netlists, but the mathematical function they compute is exactly the same. This cross-validation against an industry-standard open-source synthesis tool confirms SiliconForge's correctness independently.
+Both SiliconForge and Yosys (LibreLane's frontend) synthesize the FIR filter RTL into gate netlists that produce **bit-identical outputs at every clock cycle**. The tools use fundamentally different internal representations (SiliconForge: AIG + area-flow cost mapping, Yosys: RTLIL + ABC technology mapping) and produce structurally different netlists, but the mathematical function they compute is exactly the same. This cross-validation against an industry-standard open-source synthesis tool confirms SiliconForge's correctness independently.
 
 ---
 
